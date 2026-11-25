@@ -1,0 +1,6 @@
+import React,{createContext,useContext,useMemo,useState}from"react";import{authService}from"./api";import type{SessionUser}from"./types";
+type Register={nombre:string;correo:string;clave:string;edad:number;numeroTelefonico:string;telegramChatId?:string};
+interface AuthValue{user:SessionUser|null;login:(correo:string,clave:string)=>Promise<void>;register:(payload:Register)=>Promise<void>;logout:()=>void}
+const Ctx=createContext<AuthValue|undefined>(undefined);
+export function AuthProvider({children}:{children:React.ReactNode}){const[user,setUser]=useState<SessionUser|null>(()=>{const s=localStorage.getItem("reservas_session");return s?JSON.parse(s):null});const save=(u:SessionUser)=>{setUser(u);localStorage.setItem("reservas_session",JSON.stringify(u))};const value=useMemo<AuthValue>(()=>({user,async login(correo,clave){save(await authService.login(correo,clave))},async register(p){const result=await authService.register(p);if(result?.id)save(result);else save(await authService.login(p.correo,p.clave))},logout(){setUser(null);localStorage.removeItem("reservas_session")}}),[user]);return <Ctx.Provider value={value}>{children}</Ctx.Provider>}
+export function useAuth(){const c=useContext(Ctx);if(!c)throw new Error("useAuth requiere AuthProvider");return c}
